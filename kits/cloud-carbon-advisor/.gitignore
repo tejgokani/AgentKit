@@ -1,0 +1,10 @@
+# Never commit real credentials — only .env.example is tracked.
+.env
+.env.local
+.env*.local
+
+# dependencies pulled in by the app
+apps/node_modules
+apps/.next
+
+.DS_Store
