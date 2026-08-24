@@ -127,16 +127,32 @@ export function parseFocusCsv(text: string): FocusUsageRow[] {
     return at === undefined ? "" : sanitizeCsvCell((r[at] ?? "").trim());
   };
 
+  // Raw (unsanitized) trimmed cell, for numeric fields only — sanitizeCsvCell
+  // prefixes a leading "+", "-", "=", or "@" with an apostrophe, which would
+  // turn a legitimate quantity like "+10" into NaN.
+  const getRaw = (r: string[], field: string): string => {
+    const at = col[field];
+    return at === undefined ? "" : (r[at] ?? "").trim();
+  };
+
+  const MAX_DATA_ROWS = 100_000;
+
   const rows: FocusUsageRow[] = [];
   for (let i = 1; i < table.length; i++) {
     const r = table[i];
     if (r.every((c) => c.trim() === "")) continue;
 
-    const quantity = Number(get(r, "pricingQuantity").replace(/[, ]/g, ""));
+    if (rows.length >= MAX_DATA_ROWS) {
+      throw new FocusParseError(
+        `Too many usage rows — exceeds the ${MAX_DATA_ROWS}-row cap. Split the export by period or account.`,
+      );
+    }
+
+    const quantity = Number(getRaw(r, "pricingQuantity").replace(/[, ]/g, ""));
     if (!Number.isFinite(quantity) || quantity < 0) continue; // skip credits / malformed
 
     const regionId = get(r, "regionId") || "unknown";
-    const cost = Number(get(r, "billedCost").replace(/[$, ]/g, ""));
+    const cost = Number(getRaw(r, "billedCost").replace(/[$, ]/g, ""));
 
     rows.push({
       provider: coerceProvider(col.provider !== undefined ? get(r, "provider") : undefined, regionId),

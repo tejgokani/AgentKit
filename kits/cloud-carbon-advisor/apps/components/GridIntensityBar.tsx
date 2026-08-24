@@ -17,10 +17,16 @@ function pct(v: number): number {
   return Math.max(2, Math.min(100, (v / SCALE_MAX) * 100));
 }
 
+// Grid intensity → severity tone, so a genuinely clean current region isn't
+// painted red. Thresholds are rough tertiles of the grid-intensity range.
+function toneFor(intensity: number): "high" | "medium" | "low" {
+  return intensity >= 400 ? "high" : intensity >= 150 ? "medium" : "low";
+}
+
 export function GridIntensityBar({ currentLabel, currentIntensity, cleanerLabel, cleanerIntensity }: Props) {
   return (
     <div className="space-y-2">
-      <Bar label={currentLabel} intensity={currentIntensity} tone="high" />
+      <Bar label={currentLabel} intensity={currentIntensity} tone={toneFor(currentIntensity)} />
       {cleanerLabel !== undefined && cleanerIntensity !== undefined && (
         <Bar label={cleanerLabel} intensity={cleanerIntensity} tone="low" />
       )}
@@ -28,8 +34,8 @@ export function GridIntensityBar({ currentLabel, currentIntensity, cleanerLabel,
   );
 }
 
-function Bar({ label, intensity, tone }: { label: string; intensity: number; tone: "high" | "low" }) {
-  const color = tone === "high" ? "var(--sev-high)" : "var(--accent)";
+function Bar({ label, intensity, tone }: { label: string; intensity: number; tone: "high" | "medium" | "low" }) {
+  const color = tone === "high" ? "var(--sev-high)" : tone === "medium" ? "var(--sev-medium)" : "var(--accent)";
   return (
     <div className="flex items-center gap-3">
       <span className="w-28 shrink-0 truncate text-[11px] text-muted" title={label}>

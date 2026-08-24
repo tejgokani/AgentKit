@@ -141,7 +141,7 @@ export function classifyUsage(input: {
   if (cat.includes("storage") || /storage|volume|snapshot|backup|glacier|blob|bucket/.test(sku)) {
     const isCold = /hdd|cold|archive|glacier|sc1|st1|infrequent/.test(sku);
     const perHour = isCold ? ENERGY_COEFFICIENTS.storageHddGbHour : ENERGY_COEFFICIENTS.storageSsdGbHour;
-    if (/month/.test(unit)) {
+    if (/month|gb-mo/.test(unit)) {
       return {
         usageClass: isCold ? "storage-hdd" : "storage-ssd",
         coefficient: perHour * HOURS_PER_MONTH,
@@ -161,8 +161,15 @@ export function classifyUsage(input: {
     return { usageClass: "memory", coefficient: ENERGY_COEFFICIENTS.memoryGbHour, normalizedUnit: "GB-Hours" };
   }
 
-  // Compute — vCPU-hours (the default for Compute/Database service categories).
-  if (cat.includes("compute") || cat.includes("database") || cat.includes("container") || cat.includes("serverless") || /vcpu|cpu/.test(unit)) {
+  // Compute — vCPU-hours. Only apply the per-vCPU-hour coefficient to lines
+  // actually metered in an hour-based unit (vCPU-Hours, Hrs, Hours). A
+  // compute-category line billed in GB-Seconds, Requests, etc. has no valid
+  // conversion to vCPU-hours, so it falls through to "other" rather than being
+  // silently mis-priced.
+  const isComputeCat =
+    cat.includes("compute") || cat.includes("database") || cat.includes("container") || cat.includes("serverless");
+  const isHourUnit = /vcpu|cpu|core|\bhours?\b|\bhrs?\b/.test(unit);
+  if (/vcpu/.test(unit) || (isComputeCat && isHourUnit)) {
     return {
       usageClass: "compute",
       coefficient: isArm ? ENERGY_COEFFICIENTS.computeVcpuHourArm : ENERGY_COEFFICIENTS.computeVcpuHour,
@@ -170,7 +177,8 @@ export function classifyUsage(input: {
     };
   }
 
-  // Unknown metering — attribute no energy rather than guess. Surfaced as
-  // "other" so the UI can report how much of the bill went unmodelled.
+  // Unknown or non-convertible metering (e.g. GB-Seconds, Requests, Count) —
+  // attribute no energy rather than guess. Surfaced as "other" so the UI can
+  // report how much of the bill went unmodelled, with the real unit preserved.
   return { usageClass: "other", coefficient: 0, normalizedUnit: input.pricingUnit };
 }

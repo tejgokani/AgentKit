@@ -24,7 +24,7 @@ model.
 
 ## Architecture
 
-```
+```text
 FOCUS usage CSV
    │
    ├─ apps/lib/compute-emissions.ts   deterministic — runs in the Next.js app
@@ -138,7 +138,7 @@ supplies.
 5. Open http://localhost:3000, press **Load example**, then **Analyze footprint**.
 
 Offline: leave the Flow ID blank to run the deterministic heuristic plan with no
-credentials. `npm run eval` runs the 52-assertion offline suite.
+credentials. `npm run eval` runs the 58-assertion offline suite.
 
 ## Common failure modes
 

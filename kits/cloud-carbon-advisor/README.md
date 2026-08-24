@@ -90,7 +90,7 @@ This kit follows the methodology of the open-source
 [Cloud Carbon Footprint](https://www.cloudcarbonfootprint.org/docs/methodology)
 project:
 
-```
+```text
 emissions (gCO₂e) = energy (kWh) × PUE × grid carbon intensity (gCO₂e/kWh)
 energy (kWh)      = usage amount × energy coefficient for that usage class
 ```
@@ -126,7 +126,7 @@ levers, which is robust to the absolute uncertainty in any single coefficient.
 runs a deterministic **heuristic** plan, clearly badged, so you can explore it
 with zero setup. Connect the flow to replace the heuristic with real reasoning.
 
-Independent of Studio: `npm run eval` runs 52 offline assertions (numeric
+Independent of Studio: `npm run eval` runs 58 offline assertions (numeric
 integrity, classifier, cleaner-region math, savings pricing, model-output
 coercion, CSV-injection) with no network and no model calls.
 
@@ -139,9 +139,11 @@ coercion, CSV-injection) with no network and no model calls.
 | `LAMATIC_API_URL` | Studio → API Docs → Endpoint |
 | `LAMATIC_CARBON_ADVISOR_FLOW_ID` | Flow → three-dot menu → Flow ID |
 
-All four are read server-side only, inside `apps/actions/orchestrate.ts`. None is
-prefixed `NEXT_PUBLIC_`, and account identifiers are stripped before the flow is
-called.
+All four are read server-side only and never prefixed `NEXT_PUBLIC_`: the three
+`LAMATIC_API_*` values are consumed by the Lamatic client used in
+`apps/actions/orchestrate.ts`, and `LAMATIC_CARBON_ADVISOR_FLOW_ID` is resolved
+through the `apps/orchestrate.js` deployment manifest. Account identifiers are
+stripped before the flow is called.
 
 ## Input format
 

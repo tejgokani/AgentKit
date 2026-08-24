@@ -74,7 +74,7 @@ export function UploadPanel({
       </div>
 
       {error && (
-        <div className="mt-4 flex items-start gap-2 rounded-[var(--radius-sm)] border border-sev-high/40 bg-sev-high-soft px-3 py-2.5 text-xs text-sev-high">
+        <div role="alert" className="mt-4 flex items-start gap-2 rounded-[var(--radius-sm)] border border-sev-high/40 bg-sev-high-soft px-3 py-2.5 text-xs text-sev-high">
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>

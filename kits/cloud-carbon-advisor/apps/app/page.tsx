@@ -20,6 +20,7 @@ export default function Home() {
     setError(null);
     try {
       const res = await fetch("/sample-usage.csv");
+      if (!res.ok) throw new Error(`Example request failed: ${res.status}`);
       setCsv(await res.text());
     } catch {
       setError("Could not load the example file.");

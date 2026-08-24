@@ -81,6 +81,10 @@ function row(overrides: Partial<FocusUsageRow>): FocusUsageRow {
   ok("S2 network", classifyUsage({ serviceCategory: "Networking", pricingUnit: "GB", skuId: "DataTransfer" }).usageClass === "network");
   ok("S2 ARM detection", classifyUsage({ serviceCategory: "Compute", pricingUnit: "vCPU-Hours", skuId: "m6g.large" }).coefficient < classifyUsage({ serviceCategory: "Compute", pricingUnit: "vCPU-Hours", skuId: "m6i.large" }).coefficient);
   ok("S2 unknown→other, zero energy", classifyUsage({ serviceCategory: "Other", pricingUnit: "Requests" }).coefficient === 0);
+  ok("S2 GB-Mo alias → monthly storage", classifyUsage({ serviceCategory: "Storage", pricingUnit: "GB-Mo", skuId: "StandardStorage" }).normalizedUnit === "GB-Month");
+  ok("S2 GB-Seconds compute → other (no vCPU conversion)", classifyUsage({ serviceCategory: "Serverless", pricingUnit: "GB-Seconds", skuId: "lambda" }).usageClass === "other");
+  ok("S2 compute Hrs unit → compute", classifyUsage({ serviceCategory: "Compute", pricingUnit: "Hrs" }).usageClass === "compute");
+  ok("S2 compute Requests unit → other (not mis-priced as vCPU)", classifyUsage({ serviceCategory: "Compute", pricingUnit: "Requests" }).usageClass === "other");
 }
 
 // ── S3. Cleaner-region math + ceiling is the cleanest same-provider region ──
@@ -132,6 +136,19 @@ function row(overrides: Partial<FocusUsageRow>): FocusUsageRow {
   ok("S6 unknown reduction key coerced", plan.recommendations.find((r) => r.hotspotId === "a")?.reductionKey === "unknown");
   ok("S6 unknown key flagged", (plan.flagsByHotspot["a"] ?? []).includes("unknown-reduction-key"));
   ok("S6 missing hotspot gets default recommendation", plan.recommendations.find((r) => r.hotspotId === "b")?.reductionKey === "unknown");
+
+  // Non-object entries in model output must be skipped, not crash coercePlan.
+  ok(
+    "S6 non-object model entries skipped without throwing",
+    (() => {
+      try {
+        const p = coercePlan([null, "x", 5, ["a"], { hotspotId: "a" }], [], [{ id: "a" }] as unknown as Hotspot[]);
+        return p.diagnoses.length === 1 && p.diagnoses[0].hotspotId === "a";
+      } catch {
+        return false;
+      }
+    })(),
+  );
 }
 
 // ── S7. Equivalences are fixed, cited divisors ──────────────────────────────
@@ -199,6 +216,9 @@ function row(overrides: Partial<FocusUsageRow>): FocusUsageRow {
     threw = e instanceof FocusParseError;
   }
   ok("S10 missing required columns → FocusParseError", threw);
+
+  const plusRows = parseFocusCsv("ServiceName,RegionId,PricingUnit,PricingQuantity\nEC2,us-east-1,vCPU-Hours,+10");
+  ok("S10 leading-plus quantity parses to number (not sanitized to NaN)", plusRows.length === 1 && plusRows[0].pricingQuantity === 10);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

@@ -80,6 +80,7 @@ export function coercePlan(
 
   const diagByHotspot = new Map<string, DiagnosisResult>();
   for (const raw of Array.isArray(rawDiagnoses) ? rawDiagnoses : []) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const r = raw as Record<string, unknown>;
     const id = String(r.hotspotId ?? "");
     if (!validIds.has(id) || diagByHotspot.has(id)) continue;
@@ -101,6 +102,7 @@ export function coercePlan(
 
   const recByHotspot = new Map<string, RecommendationResult>();
   for (const raw of Array.isArray(rawRecommendations) ? rawRecommendations : []) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const r = raw as Record<string, unknown>;
     const id = String(r.hotspotId ?? "");
     if (!validIds.has(id) || recByHotspot.has(id)) continue;
