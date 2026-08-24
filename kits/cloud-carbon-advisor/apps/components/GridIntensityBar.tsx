@@ -28,7 +28,7 @@ export function GridIntensityBar({ currentLabel, currentIntensity, cleanerLabel,
     <div className="space-y-2">
       <Bar label={currentLabel} intensity={currentIntensity} tone={toneFor(currentIntensity)} />
       {cleanerLabel !== undefined && cleanerIntensity !== undefined && (
-        <Bar label={cleanerLabel} intensity={cleanerIntensity} tone="low" />
+        <Bar label={cleanerLabel} intensity={cleanerIntensity} tone={toneFor(cleanerIntensity)} />
       )}
     </div>
   );
