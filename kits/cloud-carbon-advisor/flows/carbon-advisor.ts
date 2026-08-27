@@ -54,61 +54,6 @@ export const references = {
   },
 };
 
-const generateJsonSchema = `{
-  "type": "object",
-  "properties": {
-    "diagnoses": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "hotspotId": { "type": "string" },
-          "driverClass": { "type": "string", "enum": ["dirty-grid", "compute-heavy", "storage-bloat", "egress-heavy", "over-provisioned", "mixed"] },
-          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
-          "evidence": { "type": "array", "items": { "type": "string" } },
-          "reasoning": { "type": "string" },
-          "rejectedDrivers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": { "driver": { "type": "string" }, "whyNot": { "type": "string" } },
-              "additionalProperties": true
-            }
-          }
-        },
-        "additionalProperties": true
-      }
-    },
-    "recommendations": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "hotspotId": { "type": "string" },
-          "action": { "type": "string" },
-          "rationale": { "type": "string" },
-          "effort": { "type": "string", "enum": ["low", "medium", "high"] },
-          "risk": { "type": "string", "enum": ["low", "medium", "high"] },
-          "prerequisites": { "type": "array", "items": { "type": "string" } },
-          "reductionKey": { "type": "string", "enum": ["region-migration-major", "region-migration-partial", "rightsize-major", "rightsize-moderate", "schedule-shift", "storage-tier", "arm-migration", "eliminate-full", "none", "unknown"] }
-        },
-        "additionalProperties": true
-      }
-    }
-  }
-}`;
-
-const triggerSchema = `{
-  "hotspots": "[string]",
-  "periodLabel": "string",
-  "currency": "string"
-}`;
-
-const responseMapping = `{
-  "diagnoses": "{{InstructorLLMNode_505.output.diagnoses}}",
-  "recommendations": "{{InstructorLLMNode_505.output.recommendations}}"
-}`;
-
 export const nodes = [
   {
     id: "triggerNode_1",
@@ -121,7 +66,8 @@ export const nodes = [
         id: "triggerNode_1",
         nodeName: "API Request",
         responeType: "realtime",
-        advance_schema: triggerSchema,
+        advance_schema:
+          "{\n  \"hotspots\": \"[string]\",\n  \"periodLabel\": \"string\",\n  \"currency\": \"string\"\n}",
       },
     },
   },
@@ -134,7 +80,8 @@ export const nodes = [
       values: {
         id: "InstructorLLMNode_505",
         nodeName: "Generate JSON",
-        schema: generateJsonSchema,
+        schema:
+          "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"diagnoses\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"hotspotId\": { \"type\": \"string\" },\n          \"driverClass\": { \"type\": \"string\", \"enum\": [\"dirty-grid\", \"compute-heavy\", \"storage-bloat\", \"egress-heavy\", \"over-provisioned\", \"mixed\"] },\n          \"confidence\": { \"type\": \"string\", \"enum\": [\"high\", \"medium\", \"low\"] },\n          \"evidence\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n          \"reasoning\": { \"type\": \"string\" },\n          \"rejectedDrivers\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": { \"driver\": { \"type\": \"string\" }, \"whyNot\": { \"type\": \"string\" } },\n              \"additionalProperties\": true\n            }\n          }\n        },\n        \"additionalProperties\": true\n      }\n    },\n    \"recommendations\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"hotspotId\": { \"type\": \"string\" },\n          \"action\": { \"type\": \"string\" },\n          \"rationale\": { \"type\": \"string\" },\n          \"effort\": { \"type\": \"string\", \"enum\": [\"low\", \"medium\", \"high\"] },\n          \"risk\": { \"type\": \"string\", \"enum\": [\"low\", \"medium\", \"high\"] },\n          \"prerequisites\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n          \"reductionKey\": { \"type\": \"string\", \"enum\": [\"region-migration-major\", \"region-migration-partial\", \"rightsize-major\", \"rightsize-moderate\", \"schedule-shift\", \"storage-tier\", \"arm-migration\", \"eliminate-full\", \"none\", \"unknown\"] }\n        },\n        \"additionalProperties\": true\n      }\n    }\n  }\n}",
         prompts: [
           { id: "carbon-advisor-generate-json-system", role: "system", content: "@prompts/carbon-advisor_generate-json_system.md" },
           { id: "carbon-advisor-generate-json-user", role: "user", content: "@prompts/carbon-advisor_generate-json_user.md" },
@@ -153,7 +100,8 @@ export const nodes = [
       values: {
         id: "responseNode_triggerNode_1",
         nodeName: "",
-        outputMapping: responseMapping,
+        outputMapping:
+          "{\n  \"diagnoses\": \"{{InstructorLLMNode_505.output.diagnoses}}\",\n  \"recommendations\": \"{{InstructorLLMNode_505.output.recommendations}}\"\n}",
       },
     },
   },
