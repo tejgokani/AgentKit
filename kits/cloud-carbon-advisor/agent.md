@@ -32,9 +32,9 @@ FOCUS usage CSV
    │                                   ranked; cleaner-region delta computed exactly
    │
    └─ flows/carbon-advisor            judgment — runs in Lamatic
-         ├─ Diagnose (InstructorLLM)  driverClass + confidence + evidence, no numbers
-         ├─ Recommend (InstructorLLM) action + effort/risk + reductionKey bucket
-         └─ Finalize (code)           coerce every enum, drop invented ids
+         └─ Generate JSON (structured LLM)  one diagnosis + one recommendation per
+                                            hotspot: driverClass, a lever,
+                                            effort/risk, a reductionKey bucket — no numbers
    │
    └─ apps/lib/assemble.ts            deterministic — prices each lever from a
                                       fixed multiplier table, builds the report
@@ -58,13 +58,14 @@ never emits a number.
 | `periodLabel` | string | Human-readable billing period |
 | `currency` | string | ISO currency code |
 
-**Processing** — Diagnose classifies each hotspot's dominant carbon driver
-(`dirty-grid`, `compute-heavy`, `storage-bloat`, `egress-heavy`,
-`over-provisioned`, `mixed`) with evidence and rejected alternatives. Recommend
-chooses one lever and a `reductionKey` bucket, weighing cross-region data
-residency and latency into effort/risk. Finalize coerces every enum into range,
-drops any hotspot id the model invented, and never reads a number out of the
-model's output.
+**Processing** — a single structured-output node (Generate JSON) returns, per
+hotspot: a diagnosis of the dominant carbon driver (`dirty-grid`,
+`compute-heavy`, `storage-bloat`, `egress-heavy`, `over-provisioned`, `mixed`)
+with evidence and rejected alternatives, and a recommendation — one lever and a
+`reductionKey` bucket, weighing cross-region data residency and latency into
+effort/risk. Downstream, the app's `coercePlan` (`apps/lib/plan.ts`) coerces
+every enum into range, drops any hotspot id the model invented, and never reads
+a number out of the model's output.
 
 **Response** —
 
@@ -82,8 +83,8 @@ renders the footprint dashboard and plan.
 review, or whenever "our cloud footprint is X tonnes" needs to become "and here
 are the three moves that cut it most".
 
-**Dependencies** — one structured-output ("instructor") model for diagnosis and
-one for recommendation.
+**Dependencies** — one structured-output ("instructor") model returning both the
+diagnosis and the recommendation for every hotspot.
 
 ## Guardrails
 
@@ -113,8 +114,7 @@ Beyond [`constitutions/default.md`](./constitutions/default.md):
 | Service | Purpose | Credential |
 |---|---|---|
 | Lamatic | Hosts and executes the flow | `LAMATIC_API_KEY`, `LAMATIC_PROJECT_ID`, `LAMATIC_API_URL` |
-| Structured-output model (diagnose) | Carbon-driver classification per hotspot | Configured in Studio on the Diagnose node |
-| Structured-output model (recommend) | Lever + bucket per hotspot | Configured in Studio on the Recommend node |
+| Structured-output model (Generate JSON) | Diagnosis + recommendation per hotspot | Configured in Studio on the Generate JSON node |
 
 No cloud-provider credentials are ever requested — usage data is a file the user
 supplies.
@@ -131,7 +131,7 @@ supplies.
 ## Quickstart
 
 1. Import `flows/carbon-advisor.ts` into Lamatic Studio, attach a model
-   credential to both model nodes, deploy, and copy the Flow ID.
+   credential to the Generate JSON node, deploy, and copy the Flow ID.
 2. `cd kits/cloud-carbon-advisor/apps`
 3. `cp .env.example .env.local` and fill in the four values above.
 4. `npm install && npm run dev`
@@ -149,4 +149,4 @@ credentials. `npm run eval` runs the 58-assertion offline suite.
 | Badge shows **offline heuristic** | No Flow ID configured | Set `LAMATIC_CARBON_ADVISOR_FLOW_ID` to use the flow |
 | A `flags` chip on a hotspot | Model returned an out-of-range enum or bad id | Expected and handled — the safe coerced value is shown |
 | `Could not reach Lamatic` | Wrong `LAMATIC_API_URL` or no network | Re-copy the endpoint from Studio → API Docs |
-| Every recommendation is "no recommendation" | The model node is misconfigured | Confirm a credential is attached to both model nodes in Studio |
+| Every recommendation is "no recommendation" | The model node is misconfigured | Confirm a credential is attached to the Generate JSON node in Studio |

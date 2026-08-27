@@ -58,12 +58,9 @@ FOCUS usage CSV
    │     ranks hotspots; computes the cleaner-region delta exactly — all arithmetic
    │
    └─ flows/carbon-advisor              judgment only — runs in Lamatic
-         ├─ Diagnose  (InstructorLLM)   dirty-grid | compute-heavy | storage-bloat
-         │                              | egress-heavy — driver class, no numbers
-         ├─ Recommend (InstructorLLM)   a lever + effort/risk + a reductionKey
-         │                              bucket (not a number)
-         └─ Finalize  (code)            coerce every enum, drop any invented
-                                        hotspot id — never trust the model's shape
+         └─ Generate JSON (structured LLM)  one diagnosis + one recommendation per
+                                            hotspot: driverClass, a lever, effort,
+                                            risk, a reductionKey bucket — no numbers
    │
    └─ apps/lib/assemble.ts              deterministic — prices each chosen lever
          from a fixed reductionKey→multiplier table, reconciles totals, writes
@@ -78,9 +75,10 @@ driver, and which lever* is a judgment call — the one part of the pipeline tha
 genuinely needs a model.
 
 Enforcement of "never a number" is layered, not just a prompt request: the
-[constitution](./constitutions/default.md) states it, the flow's `Finalize` code
-node forces every field into a fixed enum and never reads a numeric field out of
-the model's output, and the app prices levers from its own tested table — so
+[constitution](./constitutions/default.md) states it, the app's `coercePlan`
+(`apps/lib/plan.ts`) forces every enum into range and drops any invented hotspot
+id before anything is priced, and the app prices levers from its own tested
+table — so
 every figure in a report traces back to a deterministic source. `npm run eval`
 asserts exactly that.
 
@@ -114,7 +112,7 @@ levers, which is robust to the absolute uncertainty in any single coefficient.
 **Option A — full experience (with the Lamatic flow):**
 
 1. Import [`flows/carbon-advisor.ts`](./flows/carbon-advisor.ts) into Lamatic
-   Studio, attach a Gemini (or other) credential to the two model nodes, deploy,
+   Studio, attach a Gemini (or other) credential to the Generate JSON node, deploy,
    and copy the Flow ID.
 2. `cd kits/cloud-carbon-advisor/apps`
 3. `cp .env.example .env.local` and fill in the four values (see below).

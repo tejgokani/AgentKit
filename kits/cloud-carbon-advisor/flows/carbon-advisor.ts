@@ -1,66 +1,29 @@
 /*
  * # Carbon Advisor
  *
- * Judgment layer of the Cloud Carbon Advisor kit. The Next.js app computes an
- * emissions footprint deterministically and sends the ranked hotspots here; this
- * flow decides *why* each hotspot emits what it does and *which lever* would cut
- * it — and returns that judgment as enums, never as a number.
+ * The judgment layer of the Cloud Carbon Advisor kit, exported from Lamatic
+ * Studio. The Next.js app computes an emissions footprint deterministically and
+ * sends the ranked hotspots here; this flow decides *why* each hotspot emits
+ * what it does and *which lever* would cut it — and returns that judgment as
+ * enums, never as a number.
  *
  *   trigger (API Request)
- *     → Diagnose  (InstructorLLM)  driverClass + confidence + evidence
- *     → Recommend (InstructorLLM)  action + effort + risk + reductionKey bucket
- *     → Finalize  (code)           coerce every enum, drop invented ids
- *     → response                   { diagnoses, recommendations }
+ *     → Generate JSON (structured LLM)  diagnoses[] + recommendations[]
+ *     → response                        { diagnoses, recommendations }
  *
- * This file is the canonical Lamatic Studio export shape. Import it into Studio,
- * attach your Gemini credential to the two model nodes, deploy, and copy the
- * Flow ID into LAMATIC_CARBON_ADVISOR_FLOW_ID. Prompts, model configs, and the
- * finalize code are externalized via @references and resolved by Studio.
+ * The single structured-output node returns one diagnosis and one
+ * recommendation per hotspot, keyed by hotspotId. The app then validates every
+ * enum, drops any invented id, and prices each recommendation from a fixed,
+ * unit-tested table — so no number in a report ever originates in the model.
+ *
+ * Inline prompt text and the model config are externalized as @references
+ * (resolved by Studio); the JSON output schema stays inline as part of the flow
+ * contract.
  */
 
 // Flow: carbon-advisor
 
-export const meta = {
-  name: "carbon-advisor",
-  description:
-    "Diagnoses the dominant carbon driver of each cloud usage hotspot and recommends a decarbonization lever — as judgment, never as a number.",
-  tags: ["sustainability", "cloud-carbon", "greenops", "finops"],
-  testInput: null,
-  githubUrl: "",
-  documentationUrl: "",
-  deployUrl: "",
-  author: { name: "", email: "" },
-};
-
-export const inputs = {
-  InstructorLLMNode_diagnose: [
-    { name: "generativeModelName", label: "Generative Model Name", type: "model" },
-  ],
-  InstructorLLMNode_recommend: [
-    { name: "generativeModelName", label: "Generative Model Name", type: "model" },
-  ],
-};
-
-export const references = {
-  constitutions: {
-    default: "@constitutions/default.md",
-  },
-  prompts: {
-    carbon_advisor_diagnose_system: "@prompts/carbon-advisor_diagnose_system.md",
-    carbon_advisor_diagnose_user: "@prompts/carbon-advisor_diagnose_user.md",
-    carbon_advisor_recommend_system: "@prompts/carbon-advisor_recommend_system.md",
-    carbon_advisor_recommend_user: "@prompts/carbon-advisor_recommend_user.md",
-  },
-  modelConfigs: {
-    carbon_advisor_diagnose_generative_model_name: "@model-configs/carbon-advisor_diagnose_generative-model-name.ts",
-    carbon_advisor_recommend_generative_model_name: "@model-configs/carbon-advisor_recommend_generative-model-name.ts",
-  },
-  scripts: {
-    carbon_advisor_finalize_code: "@scripts/carbon-advisor_finalize.ts",
-  },
-};
-
-const diagnoseSchema = `{
+const generateJsonSchema = `{
   "type": "object",
   "properties": {
     "diagnoses": {
@@ -84,13 +47,7 @@ const diagnoseSchema = `{
         },
         "additionalProperties": true
       }
-    }
-  }
-}`;
-
-const recommendSchema = `{
-  "type": "object",
-  "properties": {
+    },
     "recommendations": {
       "type": "array",
       "items": {
@@ -102,10 +59,7 @@ const recommendSchema = `{
           "effort": { "type": "string", "enum": ["low", "medium", "high"] },
           "risk": { "type": "string", "enum": ["low", "medium", "high"] },
           "prerequisites": { "type": "array", "items": { "type": "string" } },
-          "reductionKey": {
-            "type": "string",
-            "enum": ["region-migration-major", "region-migration-partial", "rightsize-major", "rightsize-moderate", "schedule-shift", "storage-tier", "arm-migration", "eliminate-full", "none", "unknown"]
-          }
+          "reductionKey": { "type": "string", "enum": ["region-migration-major", "region-migration-partial", "rightsize-major", "rightsize-moderate", "schedule-shift", "storage-tier", "arm-migration", "eliminate-full", "none", "unknown"] }
         },
         "additionalProperties": true
       }
@@ -113,140 +67,109 @@ const recommendSchema = `{
   }
 }`;
 
-const triggerSchema = `{
+const flowConfig = {
+  id: "edf0967e-e90c-4d3e-a20e-5f3fbdaf93b4",
+  name: "carbon-advisor",
+  status: "active",
+  edges: [
+    {
+      id: "triggerNode_1-InstructorLLMNode_505",
+      type: "defaultEdge",
+      source: "triggerNode_1",
+      target: "InstructorLLMNode_505",
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    },
+    {
+      id: "InstructorLLMNode_505-responseNode_triggerNode_1",
+      type: "defaultEdge",
+      source: "InstructorLLMNode_505",
+      target: "responseNode_triggerNode_1",
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    },
+    {
+      id: "response-trigger_triggerNode_1",
+      type: "responseEdge",
+      source: "triggerNode_1",
+      target: "responseNode_triggerNode_1",
+      sourceHandle: "to-response",
+      targetHandle: "from-trigger",
+    },
+  ],
+  nodes: [
+    {
+      id: "triggerNode_1",
+      type: "triggerNode",
+      position: { x: 0, y: 0 },
+      data: {
+        nodeId: "graphqlNode",
+        trigger: true,
+        values: {
+          id: "triggerNode_1",
+          nodeName: "API Request",
+          responeType: "realtime",
+          advance_schema: `{
   "hotspots": "[string]",
   "periodLabel": "string",
   "currency": "string"
-}`;
+}`,
+        },
+      },
+    },
+    {
+      id: "InstructorLLMNode_505",
+      type: "dynamicNode",
+      position: { x: 0, y: 130 },
+      data: {
+        nodeId: "InstructorLLMNode",
+        values: {
+          id: "InstructorLLMNode_505",
+          nodeName: "Generate JSON",
+          schema: generateJsonSchema,
+          prompts: [
+            { id: "carbon-advisor-generate-json-system", role: "system", content: "@prompts/carbon-advisor_generate-json_system.md" },
+            { id: "carbon-advisor-generate-json-user", role: "user", content: "@prompts/carbon-advisor_generate-json_user.md" },
+          ],
+          memories: "[]",
+          messages: "[]",
+          generativeModelName: "@model-configs/carbon-advisor_generate-json.ts",
+        },
+      },
+    },
+    {
+      id: "responseNode_triggerNode_1",
+      type: "responseNode",
+      position: { x: 0, y: 260 },
+      data: {
+        nodeId: "graphqlResponseNode",
+        isResponseNode: true,
+        values: {
+          id: "responseNode_triggerNode_1",
+          nodeName: "API Response",
+          headers: '{"content-type":"application/json"}',
+          retries: "0",
+          retry_delay: "0",
+          webhookUrl: "",
+          outputMapping: `{
+  "diagnoses": "{{InstructorLLMNode_505.output.diagnoses}}",
+  "recommendations": "{{InstructorLLMNode_505.output.recommendations}}"
+}`,
+        },
+      },
+    },
+  ],
+};
 
-const responseMapping = `{
-  "diagnoses": "{{codeNode_finalize.output.diagnoses}}",
-  "recommendations": "{{codeNode_finalize.output.recommendations}}"
-}`;
+export async function getNodesAndEdges(): Promise<{
+  nodes: Record<string, unknown>[];
+  edges: Record<string, unknown>[];
+}> {
+  return { nodes: flowConfig.nodes, edges: flowConfig.edges };
+}
 
-export const nodes = [
-  {
-    id: "triggerNode_1",
-    type: "triggerNode",
-    position: { x: 0, y: 0 },
-    data: {
-      nodeId: "graphqlNode",
-      trigger: true,
-      values: {
-        id: "triggerNode_1",
-        nodeName: "API Request",
-        responeType: "realtime",
-        advance_schema: triggerSchema,
-      },
-    },
-  },
-  {
-    id: "InstructorLLMNode_diagnose",
-    type: "dynamicNode",
-    position: { x: 0, y: 0 },
-    data: {
-      nodeId: "InstructorLLMNode",
-      values: {
-        id: "InstructorLLMNode_diagnose",
-        schema: diagnoseSchema,
-        prompts: [
-          { id: "carbon-advisor-diagnose-system", role: "system", content: "@prompts/carbon-advisor_diagnose_system.md" },
-          { id: "carbon-advisor-diagnose-user", role: "user", content: "@prompts/carbon-advisor_diagnose_user.md" },
-        ],
-        memories: "[]",
-        nodeName: "Diagnose",
-        generativeModelName: "@model-configs/carbon-advisor_diagnose_generative-model-name.ts",
-      },
-    },
-  },
-  {
-    id: "InstructorLLMNode_recommend",
-    type: "dynamicNode",
-    position: { x: 0, y: 0 },
-    data: {
-      nodeId: "InstructorLLMNode",
-      values: {
-        id: "InstructorLLMNode_recommend",
-        schema: recommendSchema,
-        prompts: [
-          { id: "carbon-advisor-recommend-system", role: "system", content: "@prompts/carbon-advisor_recommend_system.md" },
-          { id: "carbon-advisor-recommend-user", role: "user", content: "@prompts/carbon-advisor_recommend_user.md" },
-        ],
-        memories: "[]",
-        nodeName: "Recommend",
-        generativeModelName: "@model-configs/carbon-advisor_recommend_generative-model-name.ts",
-      },
-    },
-  },
-  {
-    id: "codeNode_finalize",
-    type: "dynamicNode",
-    position: { x: 0, y: 0 },
-    data: {
-      nodeId: "codeNode",
-      values: {
-        id: "codeNode_finalize",
-        code: "@scripts/carbon-advisor_finalize.ts",
-        nodeName: "Finalize",
-      },
-    },
-  },
-  {
-    id: "responseNode_triggerNode_1",
-    type: "responseNode",
-    position: { x: 0, y: 0 },
-    data: {
-      nodeId: "graphqlResponseNode",
-      values: {
-        id: "responseNode_triggerNode_1",
-        nodeName: "",
-        outputMapping: responseMapping,
-      },
-    },
-  },
-];
+export async function getFlowConfig(): Promise<Record<string, unknown>> {
+  return flowConfig;
+}
 
-export const edges = [
-  {
-    id: "triggerNode_1-InstructorLLMNode_diagnose",
-    source: "triggerNode_1",
-    target: "InstructorLLMNode_diagnose",
-    sourceHandle: "bottom",
-    targetHandle: "top",
-    type: "defaultEdge",
-  },
-  {
-    id: "InstructorLLMNode_diagnose-InstructorLLMNode_recommend",
-    source: "InstructorLLMNode_diagnose",
-    target: "InstructorLLMNode_recommend",
-    sourceHandle: "bottom",
-    targetHandle: "top",
-    type: "defaultEdge",
-  },
-  {
-    id: "InstructorLLMNode_recommend-codeNode_finalize",
-    source: "InstructorLLMNode_recommend",
-    target: "codeNode_finalize",
-    sourceHandle: "bottom",
-    targetHandle: "top",
-    type: "defaultEdge",
-  },
-  {
-    id: "codeNode_finalize-responseNode_triggerNode_1",
-    source: "codeNode_finalize",
-    target: "responseNode_triggerNode_1",
-    sourceHandle: "bottom",
-    targetHandle: "top",
-    type: "defaultEdge",
-  },
-  {
-    id: "response-responseNode_triggerNode_1",
-    source: "triggerNode_1",
-    target: "responseNode_triggerNode_1",
-    sourceHandle: "to-response",
-    targetHandle: "from-trigger",
-    type: "responseEdge",
-  },
-];
-
-export default { meta, inputs, references, nodes, edges };
+export default flowConfig;
