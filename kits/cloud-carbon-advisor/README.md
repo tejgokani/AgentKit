@@ -60,7 +60,8 @@ FOCUS usage CSV
    └─ flows/carbon-advisor              judgment only — runs in Lamatic
          └─ Generate JSON (structured LLM)  one diagnosis + one recommendation per
                                             hotspot: driverClass, a lever, effort,
-                                            risk, a reductionKey bucket — no numbers
+                                            risk, a reductionKey bucket — the report's
+                                            metrics are computed downstream, not here
    │
    └─ apps/lib/assemble.ts              deterministic — prices each chosen lever
          from a fixed reductionKey→multiplier table, reconciles totals, writes

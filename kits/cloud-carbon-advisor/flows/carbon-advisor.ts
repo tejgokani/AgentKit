@@ -67,7 +67,7 @@ const generateJsonSchema = `{
   }
 }`;
 
-const flowConfig = {
+export const config_json = {
   id: "edf0967e-e90c-4d3e-a20e-5f3fbdaf93b4",
   name: "carbon-advisor",
   status: "active",
@@ -165,11 +165,11 @@ export async function getNodesAndEdges(): Promise<{
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
 }> {
-  return { nodes: flowConfig.nodes, edges: flowConfig.edges };
+  return { nodes: config_json.nodes, edges: config_json.edges };
 }
 
 export async function getFlowConfig(): Promise<Record<string, unknown>> {
-  return flowConfig;
+  return config_json;
 }
 
-export default flowConfig;
+export default config_json;
